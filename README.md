@@ -1,96 +1,123 @@
 项目介绍
 =======
-Phalcon框架的基础项目架构 [线上地址](https://admin.fastgoo.net/vue/dist/index.html).
+基于酷Q机器人cq-http扩展插件开发的PHPSDK，可以通过web管理群、QQ。可接收QQ消息事件，请求事件等等；
 
-安装
+Composer 安装
 ------------
-[官方扩展安装](https://phalconphp.com/zh/download/linux)
-[开发扩展工具](https://github.com/phalcon/phalcon-devtools)
-[中文扩展安装](http://www.iphalcon.cn/reference/install.html)
-
 ```bash
-git clone https://github.com/jungege520/simple.phalcon.git phalcon
-cd phalcon
+新建composer.json文件，引入包如下：
+ 
+{
+  "require-dev": {
+    "fastgoo/cq-http-phpsdk": "dev-master"
+  }
+} 
+
 composer install
 ```
 
-依赖包
+依赖扩展
 -------
-1、[第三方支付](https://github.com/helei112g/payment)：集成微信、支付宝、银联所有支付类型。包含退款、查询、企业付款等扩展业务<br>
-
-2、[极光推送](https://github.com/jpush/jpush-api-php-client)：集成集成极光推送3.5版本<br>
-
-3、[七牛云存储](https://github.com/qiniu/php-sdk)：集成七牛云存储类，封装部分上传、认证、删除方法<br>
-
-4、[PHP-JWT token认证](https://github.com/firebase/php-jwt)：集成JWT认证类，已封装加密解密的类方法<br>
-
-5、[微信SDK](https://github.com/thenbsp/wechat)：微信的大部分常用的SDK都已封装，可查看WIKI文档<br>
-
-
+1、日志系统依赖 Redis扩展 和 Redis服务器
 
 项目结构
 -------
 
 ```bash
-project/
-  app/
-    config/       ---配置文件
-      development/---开发环境配置文件
-      testing/    ---测试环境配置文件
-    controllers/  ---控制器
-    helper/       ---公共方法
-    library/      ---封装类
-    migration/    ---数据库迁移文件
-    models/       ---模型文件
-    services/     ---业务类（存放业务操作方法）
-    views/        ---视图
-  public/         ---公共资源
-    css/
-    img/
-    js/
-  cache/          ---缓存文件（缓存，视图）
-  log/            ---log日志（日志按日期分路径）
-  resource/       ---文件资源路径（存储密钥、证书等等）
-  vendor/         ---composer包管理
+src/
+    CoolQ/
+        Core/
+            CoolQ.php  核心管理器，管理Core、Discuss、Group、Receive、System、User这些核心类
+            Core.php 核心类 HTTP请求、酷Q码转换、请求服务器数据做拼装、Redis日志记录
+            Discuss.php 讨论组API
+            Group.php 群组API
+            User.php 用户API
+            System.php 系统API
+            Receive.php 接收酷Q请求的数据，数据转化、校验
+        Lib -
+            Redis.php Redis日志类
 ```
 
-改动介绍
+使用教程
 -------
-1、分离 config.php 里面的数据库配置信息
+```
+<?php
+ 
+require __DIR__ . '/vendor/autoload.php';
 
-2、添加公共配置文件common.php，包含接口输出方法、log日志初始、密码加密解密
+use CoolQ\Core\CoolQ;
 
-3、改动loader.php文件，注册项目的命名空间
+$config = [
+    /** 酷Q IP地址 */
+    'host' => '',
+    /** 酷Q 监听端口 */
+    'port' => '',
+    /** 验证Key */
+    'key' => '',
+    /** 数据有效时间 */
+    'timeout' => 30,
+    /** redis配置 */
+    'redis' => [
+        'host' => '',
+        'port' => '',
+        'auth' => '',
+        /** 日志key */
+        'logKey' => 'coolq-log',
+    ],
+];
+$config['url'] = $config['host'] . ':' . (!empty($_GET['port']) ? $_GET['port'] : $config['port']);
 
-4、添加module.php、修改router.php的验证机制让其支持控制其的二级目录
+/** 初始化核心类 */
+$cq = new CoolQ($config);
+/** 获取酷Q请求数据 */
+$cq->receive->getData();
+/** 接收实例 */
+$receive = $cq->receive;
 
-5、改动services.php 全局注册数据库配置、公共配置、支付回调方法、redis缓存服务、
+/** 事件类型操作 */
+switch ($receive->getEventType()) {
+    case $receive::FRIEND_MSG_TYPE: //用户消息
+        $cq->user->sendMsg($receive->data['qq'],'收到消息->'.$receive->data['msg']);
+        break;
+    case $receive::FRIEND_REQUEST_EVENT_TYPE: //收到好友请求
+        $cq->user->setFriendAddRequest($receive->data['responseFlag'], 1);
+        $cq->user->sendMsg($receive->data['qq'], '很高兴我们成为朋友，我是酷Q机器人');
+        break;
+    case $receive::GROUP_MSG_TYPE: //群消息
+        $cq->group->sendMsg($receive->data['group'],'收到群消息->'.$receive->data['msg']);
+        break;
+    case $receive::DISCUSS_MSG_TYPE: //讨论组消息
+        $cq->discuss->sendMsg($receive->data['group'],'收到群消息->'.$receive->data['msg']);
+        break;
+    case $receive::GROUP_REQUEST_EVENT_TYPE: //加群申请
+        $cq->group->setGroupAddRequest($receive->data['responseFlag'], $receive->getEventFromType(), 1);
+        break;
+    case $receive::GROUP_FILE_UPLOAD_EVENT_TYPE: //群文件变动
+        break;
+    case $receive::GROUP_ADMIN_CHANGE_EVENT_TYPE: //管理员变更
+        if ($receive->getEventFromType() == $receive::GROUP_ADMIN_CHANGE_EVENT_FROM_CANCEL) {
+            $msg = " 失去管理员资格";
+        } else {
+            $msg = " 成为管理员";
+        }
+        $cq->group->sendMsg($receive->data['group'], $receive->data['beingOperateQQ'].$msg);
+        break;
+    case $receive::GROUP_MEMBER_DECREASE_EVENT_TYPE: //群人员减少
+        $cq->group->sendMsg($receive->data['group'], $receive->data['beingOperateQQ'].'离开群');
+        break;
+    case $receive::GROUP_MEMBER_INCREASE_EVENT_TYPE: //群人员增加
+        $cq->group->sendMsg($receive->data['group'], $receive->data['beingOperateQQ'].'加入群');
+        break;
+    default:
+        break;
+}
+```
 
-6、添加BaseController控制器，里面包含大部分的验证方法
 
-7、Library添加支付宝支付、支付宝企业转账、接口签名、极光推送、JWT授权、支付通知、七牛存储、微信登录授权、微信支付、微信企业转账
-
-8、Models添加Model基类，重写连表多数据查询、单表多数据查询、单表单数据查询、查询COUNT、SUM...！不影响Phalcon原Model的使用
-
-9、services业务操作类
-
-感言
+作者
 -------
+QQ：773729704 记得备注github
 
-1、命名空间是个大坑，写方法的时候一定要注意命名空间的使用，一不小心就坑的你吐。
+微信：huoniaojugege  记得备注github
 
-2、不要重复造轮子，多去找找有没有composer包，[点击传送门](https://packagist.org/)
-
-3、多查看手册  [官方英文手册](https://docs.phalconphp.com/en/3.2) [3.0的中文手册](http://www.iphalcon.cn/)
-
-4、记住多看手册，基本上大部分遇到的坑都会在手册查看，类的用法可以多查API [点击传送门](https://docs.phalconphp.com/en/3.2/api/index)
-
-
-
-加入我们
--------
-交流群：150237524
-
-我的QQ：773729704 记得备注github
-
-我的微信：huoniaojugege  记得备注github
+需要做web QQ机器人管理系统的可以联系我
