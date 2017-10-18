@@ -79,40 +79,40 @@ class Group
     public function testReceive()
     {
         if($res = $this->receive->isRedReward()){
-            Redis::getInstance()->setLog('','红包->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','红包->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isAtMe()){
-            Redis::getInstance()->setLog('','@我->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','@我->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isImage()){
-            Redis::getInstance()->setLog('','图片->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','图片->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isUrlShare()){
-            Redis::getInstance()->setLog('','分享链接->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','分享链接->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isShake()){
-            Redis::getInstance()->setLog('','抖一抖->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','抖一抖->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isFace()){
-            Redis::getInstance()->setLog('','表情->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','表情->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isShareCard()){
-            Redis::getInstance()->setLog('','分享名片->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','分享名片->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isAnonymous()){
-            Redis::getInstance()->setLog('','匿名聊天->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','匿名聊天->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isLocation()){
-            Redis::getInstance()->setLog('','分享定位->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','分享定位->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isMusic()){
-            Redis::getInstance()->setLog('','分享音乐->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','分享音乐->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isRecord()){
-            Redis::getInstance()->setLog('','语音->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','语音->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
         if($res = $this->receive->isMiShow()){
-            Redis::getInstance()->setLog('','厘米秀->'.json_encode($res,JSON_UNESCAPED_UNICODE));
+            $this->cq->redis->setLog('','厘米秀->'.json_encode($res,JSON_UNESCAPED_UNICODE));
         }
     }
 

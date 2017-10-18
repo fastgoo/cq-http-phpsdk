@@ -13,7 +13,6 @@ use Handler\Group;
 use Handler\User;
 use Handler\Discuss;
 
-
 $cq = new CoolQ($config);
 $receive = $cq->receive->getData();
 $userHandler = new User($cq);
