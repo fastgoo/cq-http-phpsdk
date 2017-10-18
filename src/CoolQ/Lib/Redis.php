@@ -12,27 +12,48 @@ class Redis
 {
     private $_redis;
 
-    private $_key;
-
     private $is_connect = false;
 
+    private $config;
+
+    /**
+     * 初始化redis连接
+     * Redis constructor.
+     * @param array $config
+     */
     public function __construct($config = array())
     {
-        if (extension_loaded('redis')) {
+        $this->config = $config;
+        if (extension_loaded('redis') && !empty($this->config['host'])) {
             $this->_redis = new \Redis();
-            $host = !empty($config['host']) ? $config['host'] : '39.108.134.88';
-            $port = !empty($config['port']) ? $config['port'] : 6379;
-            $auth = !empty($config['auth']) ? $config['auth'] : 'Mr.Zhou';
-            $this->is_connect = $this->_redis->connect($host, $port);
-            $this->is_connect && $this->_redis->auth($auth);
+            $this->is_connect = $this->_redis->connect($this->config['host'], $this->config['port'] ?: 6379);
+            if ($this->is_connect && $this->config['auth']) {
+                $this->_redis->auth($this->config['auth']);
+            }
         }
     }
 
-    public function setLogKey($key)
+    /**
+     * 获取日志
+     * @return bool|string
+     */
+    public function getLog()
     {
-        $this->_key = $key;
+        return $this->_redis->get($this->config['logKey']);
     }
 
+    /**
+     * 清空日志记录
+     */
+    public function deleteLog()
+    {
+        return $this->_redis->delete($this->config['logKey']);
+    }
+
+    /**
+     * 获取redis实例
+     * @return bool|\Redis
+     */
     public function getRedis()
     {
         if (!$this->is_connect) {
@@ -41,13 +62,19 @@ class Redis
         return $this->_redis;
     }
 
+    /**
+     * 写入Log
+     * @param string $type
+     * @param string $message
+     * @return bool
+     */
     public function setLog($type = 'result', $message = '')
     {
         if (!$this->is_connect) {
             return false;
         }
 
-        $key = $this->_key ?: 'coolq-log';
+        $key = $this->config['logKey'] ?: 'coolq-log';
         $logStr = $this->_redis->get($key);
         $date = date('Y/m/d H-i-s');
         switch ($type) {
@@ -65,6 +92,4 @@ class Redis
         }
         return $this->_redis->set($key, $logStr . "\n<br>" . $date . "[$typeName]: " . $message);
     }
-
-
 }
